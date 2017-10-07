@@ -1,0 +1,64 @@
+---
+- hosts: all
+  vars:
+    download_dir: '{{ ansible_env.HOME }}/Downloads'
+    software_dir: '{{ ansible_env.HOME }}/opt'
+    java_pkg: java-1.8.0-openjdk-devel
+    packages:
+      ["emacs", "tmux", "i3", "i3status", "dmenu", "i3lock", "feh", "conky"]
+  tasks:
+  - name: create directories
+    file:
+      path: "{{ item }}"
+      state: directory
+    with_items:
+      - "{{ download_dir }}"
+      - "{{ software_dir }}"
+      
+  - name: Install java
+    import_role:
+      name: geerlingguy.java
+    vars:
+      java_packages:
+        - '{{ java_pkg }}'
+      java_home: '/usr/java/latest'
+    become: true
+    
+  - name: Install Intellij
+    import_role:
+      name: gantsign.intellij
+    vars:
+       intellij_version: '2017.2.5'
+       intellij_edition: 'ultimate'
+       intellij_install_dir: '{{ software_dir }}/idea/idea-{{ intellij_edition }}-{{ intellij_version }}'
+       intellij_download_dir: '{{ download_dir }}'
+       intellij_default_jdk_home: '/usr/java/latest'
+       intellij_default_maven_home: '{{ software_dir }}/maven'
+
+  - name: Install packages
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items: "{{ packages }}"
+    become: true
+
+  - name: Install oh-my-zsh
+    import_role:
+      name: gantsign.oh-my-zsh
+    vars:
+      users:
+        - username: "{{ lookup('env','USER') }}"
+  - name: Install sbt
+    import_role:
+      name: andrewrothstein.scala
+    vars:
+      sbt_install_parent_dir: "{{ software_dir }}"
+
+
+
+    
+
+  
+
+
+  
