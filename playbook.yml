@@ -4,8 +4,11 @@
     download_dir: '{{ ansible_env.HOME }}/Downloads'
     software_dir: '{{ ansible_env.HOME }}/opt'
     java_pkg: java-1.8.0-openjdk-devel
-    packages:
-      ["emacs", "tmux", "i3", "i3status", "dmenu", "i3lock", "feh", "conky"]
+    packages: ["emacs", "tmux", "i3", "i3status", "dmenu", "i3lock", "feh", "conky"]
+    config_files:
+      - { src: "files/i3-config", dest: "~/.config/i3/config" }
+      - { src: "files/tmux.conf", dest: "~/.tmux.conf" }
+      
   tasks:
   - name: create directories
     file:
@@ -14,15 +17,15 @@
     with_items:
       - "{{ download_dir }}"
       - "{{ software_dir }}"
-      
-  - name: Install java
+      - "~/.config"
+      - "~/.config/i3"
+
+  # It also installs java
+  - name: Install sbt
     import_role:
-      name: geerlingguy.java
+      name: andrewrothstein.scala
     vars:
-      java_packages:
-        - '{{ java_pkg }}'
-      java_home: '/usr/java/latest'
-    become: true
+      sbt_install_parent_dir: "{{ software_dir }}"
     
   - name: Install Intellij
     import_role:
@@ -32,8 +35,15 @@
        intellij_edition: 'ultimate'
        intellij_install_dir: '{{ software_dir }}/idea/idea-{{ intellij_edition }}-{{ intellij_version }}'
        intellij_download_dir: '{{ download_dir }}'
-       intellij_default_jdk_home: '/usr/java/latest'
+       intellij_default_jdk_home: '/usr/local/java'
        intellij_default_maven_home: '{{ software_dir }}/maven'
+
+  - name: Install oh-my-zsh
+    import_role:
+      name: gantsign.oh-my-zsh
+    vars:
+      users:
+        - username: "{{ ansible_user }}"
 
   - name: Install packages
     package:
@@ -41,18 +51,14 @@
       state: present
     with_items: "{{ packages }}"
     become: true
-
-  - name: Install oh-my-zsh
-    import_role:
-      name: gantsign.oh-my-zsh
-    vars:
-      users:
-        - username: "{{ lookup('env','USER') }}"
-  - name: Install sbt
-    import_role:
-      name: andrewrothstein.scala
-    vars:
-      sbt_install_parent_dir: "{{ software_dir }}"
+    
+  - name: Copy config files
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      backup: true
+    with_items: "{{ config_files }}"
+      
 
 
 
